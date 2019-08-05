@@ -14,7 +14,10 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_DIR = os.path.dirname(os.path.abspath(__file__)) + '/templates'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -29,6 +32,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
+CORS_ORIGIN_ALLOW_ALL=True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -37,15 +41,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'backend_app',
+    'corsheaders',
+    'frontend_app',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -54,6 +62,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'period_shifter_project.urls'
 
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.load_template_source',
+    # 'django.template.loaders.app_directories.load_template_source',
+#     'django.template.loaders.eggs.load_template_source',
+)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

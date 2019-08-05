@@ -278,7 +278,7 @@ fabric.properties
 .idea/modules.xml
 .idea/period_shifter.iml
 .idea/vcs.xml
-frontend_backup/
+#frontend_backup/
 period_shifter_project/.idea/dataSources.local.xml
 period_shifter_project/.idea/dataSources.xml
 period_shifter_project/.idea/dataSources/
@@ -289,6 +289,6 @@ period_shifter_project/backend_app/__init__.py
 period_shifter_project/backend_app/apps.py
 period_shifter_project/backend_app/migrations/
 period_shifter_project/backend_app/serializers.py
-startbootstrap-sb-admin-2-gh-pages/
+#templates/
 /period_shifter_project/venv/
 /period_shifter_project/.idea/
