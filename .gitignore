@@ -291,3 +291,4 @@ period_shifter_project/backend_app/migrations/
 period_shifter_project/backend_app/serializers.py
 startbootstrap-sb-admin-2-gh-pages/
 /period_shifter_project/venv/
+/period_shifter_project/.idea/
