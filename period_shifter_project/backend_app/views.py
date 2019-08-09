@@ -1,12 +1,17 @@
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from rest_framework import viewsets
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from backend_app.models import UserProfile
-from backend_app.serializers import UserSerializer, GroupSerializer, UserProfileSerializer
+from backend_app.models import PeriodPlan, DayPlan, YearPlan
+from backend_app.permissions import IsOwner, IsOwnerOnly
+from backend_app.serializers import UserSerializer, GroupSerializer, PeriodPlanSerializer, DayPlanSerializer
 from rest_framework_swagger.views import get_swagger_view
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class CustomObtainAuthToken(ObtainAuthToken):
@@ -22,6 +27,8 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
+    # permission_classes = [IsAdminUser]
+    # permission_classes = [IsOwner]
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -31,9 +38,36 @@ class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
-    serializer_class = UserProfileSerializer
-
 
 schema_view = get_swagger_view(title='Pastebin API')
+
+
+class PeriodPlanViewSet(viewsets.ModelViewSet):
+    queryset = PeriodPlan.objects.all()
+    serializer_class = PeriodPlanSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return self.queryset
+        else:
+            queryset = self.queryset.filter(User=self.request.user)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(User=self.request.user)
+
+
+class DayPlanViewSet(viewsets.ModelViewSet):
+    queryset = DayPlan.objects.all()
+    serializer_class = DayPlanSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        print(self.request.user)
+        if self.request.user.is_superuser:
+            return self.queryset
+        else:
+            queryset = self.queryset.filter(
+                YearPlan=YearPlan.objects.get(PeriodPlan=PeriodPlan.objects.get(User=self.request.user)))
+            return queryset

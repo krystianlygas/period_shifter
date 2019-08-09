@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<script src="../assets/js/core/jquery.min.js"></script>
+<link href='https://use.fontawesome.com/releases/v5.0.6/css/all.css' rel='stylesheet'>
+<link href='/vendor/fullcalendar-4.2.0/packages/core/main.css' rel='stylesheet' />
+<link href='/vendor/fullcalendar-4.2.0/packages/bootstrap/main.css' rel='stylesheet' />
+<link href='/vendor/fullcalendar-4.2.0/packages/timegrid/main.css' rel='stylesheet' />
+<link href='/vendor/fullcalendar-4.2.0/packages/daygrid/main.css' rel='stylesheet' />
+<link href='/vendor/fullcalendar-4.2.0/packages/list/main.css' rel='stylesheet' />
+<script src='/vendor/fullcalendar-4.2.0/packages/core/main.js'></script>
+<script src='/vendor/fullcalendar-4.2.0/packages/interaction/main.js'></script>
+<script src='/vendor/fullcalendar-4.2.0/packages/bootstrap/main.js'></script>
+<script src='/vendor/fullcalendar-4.2.0/packages/daygrid/main.js'></script>
+<script src='/vendor/fullcalendar-4.2.0/packages/timegrid/main.js'></script>
+<script src='/vendor/fullcalendar-4.2.0/packages/list/main.js'></script>
+<script src='js/theme-chooser.js'></script>
+<script src="vendor/cookie/jQueryCookies.js"></script>
+
+<script>
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var Calendar = FullCalendar.Calendar;
+    var Draggable = FullCalendarInteraction.Draggable
+
+    /* initialize the external events
+    -----------------------------------------------------------------*/
+
+    var containerEl = document.getElementById('external-events-list');
+    new Draggable(containerEl, {
+      itemSelector: '.fc-event',
+      eventData: function(eventEl) {
+        if (eventEl.innerText.trim()=='PeriodDay'){
+            let r_color = '#ff0000'
+          }
+        return {
+          title: eventEl.innerText.trim()
+        }
+      }
+    });
+    
+    
+    
+    var calendarEl = document.getElementById('calendar');
+    var calendar;
+
+    initThemeChooser({
+
+      init: function(themeSystem) {
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          plugins: [ 'bootstrap', 'interaction', 'dayGrid', 'timeGrid', 'list' ],
+          themeSystem: themeSystem,
+          header: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+          },
+          defaultDate: '2019-06-12',
+          weekNumbers: true,
+          navLinks: true, // can click day/week names to navigate views
+          editable: true,
+          eventLimit: true, // allow "more" link when too many events
+          events: function(info, callback) {
+            $.ajax({
+            dataType: 'json',
+            url: `http://localhost:8000/dayplan`,
+            type: 'GET',
+            // Fetch the stored token from localStorage and set in the header
+            headers: {"Authorization": `Token ${$.cookie('token')}`},
+            }).done(function(data, statusText, resObject) {
+               var jsonData = resObject.responseJSON
+               var events = [];
+               
+                  $(jsonData.results).each(function() {
+                    if($(this).attr('HolidayFlag')){
+                      events.push({
+                        title: 'Holiday',
+                        start: $(this).attr('Date'),
+                        color: '#ff00ac',
+                        id: $(this).attr('id')
+                    });
+                    }
+                    if($(this).attr('PeriodDay')){
+                      events.push({
+                        title: 'PeriodDay',
+                        start: $(this).attr('Date'),
+                        color: '#ff0000',
+                        id: $(this).attr('id')
+                    });
+                    }
+                    if($(this).attr('PlaceboDay')){
+                      events.push({
+                        title: 'PlaceboDay',
+                        start: $(this).attr('Date'),
+                        color: '#00FF00',
+                        id: $(this).attr('id')
+                    });
+                    }
+                    if($(this).attr('TabsDay')){
+                      events.push({
+                        title: 'TabsDay',
+                        start: $(this).attr('Date'),
+                        color: '#00FF00',
+                        id: $(this).attr('id')
+                    });
+                    }
+                  });
+                  
+                  callback(events);
+          });
+        },
+      eventDrop: function(info) {
+            
+            const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+            var diffInDays = ((info.event.start-info.oldEvent.start)/_MS_PER_DAY)
+            var id = info.event.id;
+            var ev_title = info.event.title;
+            if (ev_title=='Holiday'){
+                $.ajax({
+                dataType: 'json',
+                url: `http://localhost:8000/dayplan/${id}/`,
+                type: 'PATCH',
+                data: {'HolidayFlag': false, 'id':id},
+                // Fetch the stored token from localStorage and set in the header
+                headers: {"Authorization": `Token ${$.cookie('token')}`},
+                }).done(function(data){
+                    $.ajax({
+                      dataType: 'json',
+                      url: `http://localhost:8000/dayplan/${parseInt(id)+parseInt(diffInDays)}/`,
+                      type: 'PATCH',
+                      data: {'HolidayFlag': true, 'id':(parseInt(id)+parseInt(diffInDays))},
+                      // Fetch the stored token from localStorage and set in the header
+                      headers: {"Authorization": `Token ${$.cookie('token')}`},
+                      }).done(function(data){
+                        //
+                      });
+                      });
+            } else if (ev_title=='PeriodDay'){
+                $.ajax({
+                dataType: 'json',
+                url: `http://localhost:8000/dayplan/${id}/`,
+                type: 'PATCH',
+                data: {'PeriodDay': false, 'id':id},
+                // Fetch the stored token from localStorage and set in the header
+                headers: {"Authorization": `Token ${$.cookie('token')}`},
+                }).done(function(data){
+                    $.ajax({
+                      dataType: 'json',
+                      url: `http://localhost:8000/dayplan/${parseInt(id)+parseInt(diffInDays)}/`,
+                      type: 'PATCH',
+                      data: {'PeriodDay': true, 'id':(parseInt(id)+parseInt(diffInDays))},
+                      // Fetch the stored token from localStorage and set in the header
+                      headers: {"Authorization": `Token ${$.cookie('token')}`},
+                      }).done(function(data){
+                        //
+                      })
+                      })
+                }else if(ev_title=='PlaceboDay'){
+                $.ajax({
+                dataType: 'json',
+                url: `http://localhost:8000/dayplan/${id}/`,
+                type: 'PATCH',
+                data: {'PlaceboDay': false, 'id':id},
+                // Fetch the stored token from localStorage and set in the header
+                headers: {"Authorization": `Token ${$.cookie('token')}`},
+                }).done(function(data){
+                    $.ajax({
+                      dataType: 'json',
+                      url: `http://localhost:8000/dayplan/${parseInt(id)+parseInt(diffInDays)}/`,
+                      type: 'PATCH',
+                      data: {'PlaceboDay': true, 'id':(parseInt(id)+parseInt(diffInDays))},
+                      // Fetch the stored token from localStorage and set in the header
+                      headers: {"Authorization": `Token ${$.cookie('token')}`},
+                      }).done(function(data){
+                        //
+                      })
+                      })
+                }else if(ev_title=='TabsDay'){
+                $.ajax({
+                dataType: 'json',
+                url: `http://localhost:8000/dayplan/${id}/`,
+                type: 'PATCH',
+                data: {'TabsDay': false, 'id':id},
+                // Fetch the stored token from localStorage and set in the header
+                headers: {"Authorization": `Token ${$.cookie('token')}`},
+                }).done(function(data){
+                    $.ajax({
+                      dataType: 'json',
+                      url: `http://localhost:8000/dayplan/${parseInt(id)+parseInt(diffInDays)}/`,
+                      type: 'PATCH',
+                      data: {'TabsDay': true, 'id':(parseInt(id)+parseInt(diffInDays))},
+                      // Fetch the stored token from localStorage and set in the header
+                      headers: {"Authorization": `Token ${$.cookie('token')}`},
+                      }).done(function(data){
+                        
+                      })
+                      })
+                }
+            },
+            drop: function(info){
+              $.ajax({
+            dataType: 'json',
+            url: `http://localhost:8000/dayplan`,
+            type: 'GET',
+            // Fetch the stored token from localStorage and set in the header
+            headers: {"Authorization": `Token ${$.cookie('token')}`},
+            }).done(function(data, statusText, resObject) {
+               var jsonData = resObject.responseJSON
+               var events = [];
+                  $(jsonData.results).each(function() {
+                  
+                    if($(this).attr('Date')==dateToYMD(info.date)){
+                      let r_id = $(this).attr('id')
+                      var title_name = (info.draggedEl.innerText.trim())
+                      if (title_name == 'Holiday'){
+                        title_name = 'HolidayFlag'
+                      }
+                      $.ajax({
+                      dataType: 'json',
+                      url: `http://localhost:8000/dayplan/${r_id}/`,
+                      type: 'PATCH',
+                      data: { [title_name]: true, 'id':r_id},
+                      // Fetch the stored token from localStorage and set in the header
+                      headers: {"Authorization": `Token ${$.cookie('token')}`},
+                      }).done(function(data){
+                        //console.log(data)
+                      })
+                    
+                  } else {
+                      // tutaj dodać notify, ze nie mozna dodać, ()
+
+                  }
+                  });
+                  
+                  });
+
+
+
+            }
+        });
+        calendar.setOption('aspectRatio', 2.2)
+        calendar.render();
+      },
+
+      change: function(themeSystem) {
+        calendar.setOption('themeSystem', themeSystem);
+      }
+
+    });
+
+  });
+function dateToYMD(date) {
+    var d = date.getDate();
+    var m = date.getMonth() + 1; //Month from 0 to 11
+    var y = date.getFullYear();
+    return '' + y + '-' + (m<=9 ? '0' + m : m) + '-' + (d <= 9 ? '0' + d : d);
+}
+
+</script>
+<style>
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    overflow: hidden
+  }
+    #calendar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    }
+
+  #top,
+  #calendar.fc-unthemed {
+    font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
+  }
+
+  #top {
+    background: #eee;
+    border-bottom: 1px solid #ddd;
+    padding: 0 10px;
+    line-height: 40px;
+    font-size: 12px;
+    color: #000;
+  }
+
+  #top .selector {
+    display: inline-block;
+    margin-right: 10px;
+  }
+
+  #top select {
+    font: inherit; /* mock what Boostrap does, don't compete  */
+  }
+
+  .left { float: left }
+  .right { float: right }
+  .clear { clear: both }
+
+  #calendar {
+    max-width: 100%;
+    margin: 40px auto;
+    padding: 0 10px;
+  }
+
+</style>
+</head>
+<body>
+<div id='calendar-container'>
+  <div id='top'>
+
+    <div class='left' style='display:none'>
+
+      <div id='theme-system-selector' class='selector' style='display:none'>
+        <select>
+          <option value='bootstrap' selected>Bootstrap 4</option>
+          <option value='standard'>unthemed</option>
+        </select>
+      </div>
+
+      <div data-theme-system="bootstrap" class='selector' style='display:none'>
+        <select style='display:none'>
+          <option value=''>Default</option>
+          <option value='cerulean'>Cerulean</option>
+          <option value='cosmo'>Cosmo</option>
+          <option value='cyborg'>Cyborg</option>
+          <option value='darkly'>Darkly</option>
+          <option value='flatly'>Flatly</option>
+          <option value='journal'>Journal</option>
+          <option value='litera'>Litera</option>
+          <option value='lumen'>Lumen</option>
+          <option value='lux'>Lux</option>
+          <option value='materia'>Materia</option>
+          <option value='minty'>Minty</option>
+          <option value='pulse'>Pulse</option>
+          <option value='sandstone'>Sandstone</option>
+          <option value='simplex'>Simplex</option>
+          <option value='sketchy'>Sketchy</option>
+          <option value='slate'>Slate</option>
+          <option value='solar'>Solar</option>
+          <option value='spacelab'>Spacelab</option>
+          <option value='superhero' style='display:none'>Superhero</option>
+          <option value='united' selected>United</option>
+          <option value='yeti'>Yeti</option>
+        </select>
+      </div>
+
+      <span id='loading' style='display:none'>loading theme...</span>
+    </div>
+    
+  </div>
+  <div id='wrap'>
+  <div id='calendar'></div>
+    <div id='external-events'>
+      <div id='external-events-list' style="display: inline">
+        <div style='display: inline' class='fc-event'>Holiday</div>
+        <div style='display: inline' class='fc-event'>PeriodDay</div>
+        <div style='display: inline' class='fc-event'>PlaceboDay</div>
+        <div style='display: inline' class='fc-event'>TabsDay</div>
+      </div>
+      <p style="display: inline">
+        <input type='checkbox' id='drop-remove' />
+        <label for='drop-remove'>del</label>
+      </p>
+    </div>
+</div>
+
+</body>
+</html>
+
